@@ -1,0 +1,44 @@
+### 1. Registrar un pedido de 2 unidades (flujo existente) -> estado REGISTRADO
+POST http://localhost:8081/sistema-pedidos/pedidos
+Content-Type: application/x-www-form-urlencoded
+
+cliente=Ana Torres&productoCodigo=LAP-001&cantidad=2
+
+### 2. Listar pedidos y ver su estado
+GET http://localhost:8081/sistema-pedidos/api/v1/orders
+
+### 3. Anular el pedido 1 -> 201 Created (stock +2 en Inventario, pedido ANULADO)
+POST http://localhost:8081/sistema-pedidos/api/v1/anulaciones
+Content-Type: application/json
+
+{ "pedidoId": 1, "motivo": "Solicitud del cliente" }
+
+### 4. Anulación duplicada -> 409 Conflict (sin nueva devolución)
+POST http://localhost:8081/sistema-pedidos/api/v1/anulaciones
+Content-Type: application/json
+
+{ "pedidoId": 1, "motivo": "Otra vez" }
+
+### 5. Pedido inexistente -> 404 Not Found
+POST http://localhost:8081/sistema-pedidos/api/v1/anulaciones
+Content-Type: application/json
+
+{ "pedidoId": 9999 }
+
+### 6. Consultar anulaciones registradas
+GET http://localhost:8081/sistema-pedidos/api/v1/anulaciones
+
+### 7. Contrato directo de la nueva API de Inventario
+GET http://localhost:8082/inventario-service/api/inventario/productos/codigo/LAP-001/stock
+
+###
+POST http://localhost:8082/inventario-service/api/inventario/productos/codigo/LAP-001/devoluciones
+Content-Type: application/json
+
+{ "cantidad": 2 }
+
+### cantidad inválida -> 400
+POST http://localhost:8082/inventario-service/api/inventario/productos/codigo/LAP-001/devoluciones
+Content-Type: application/json
+
+{ "cantidad": 0 }

@@ -1,0 +1,19 @@
+digraph PA2 {
+  rankdir=TB; fontname="Helvetica"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11]; edge [fontname="Helvetica", fontsize=10];
+  subgraph cluster_spring { label="sistema-pedidos-springboot (Spring Boot :8081)"; style=dashed; color="#2b6cb0";
+    C [label="AnulacionPedidoController\n@RestController", fillcolor="#bee3f8"];
+    S [label="AnulacionPedidoServiceImpl\n@Service / @Transactional (solo H2)", fillcolor="#bee3f8"];
+    K [label="DevolucionStockClient\n(DevolucionStockRestClient)", fillcolor="#bee3f8"];
+    R [label="AnulacionPedidoRepository\nPedidoRepository", fillcolor="#bee3f8"];
+    H [label="H2 (en memoria)\npedido, anulacion_pedido", shape=cylinder, fillcolor="#e2e8f0"];
+  }
+  subgraph cluster_jakarta { label="inventario-service (Jakarta EE / WildFly :8082)"; style=dashed; color="#276749";
+    P [label="ProductoResource\nPOST .../codigo/{codigo}/devoluciones", fillcolor="#c6f6d5"];
+    I [label="InventarioService\n@Stateless", fillcolor="#c6f6d5"];
+    E [label="ProductoInventario (JPA)\ndevolverStock() + @Version", fillcolor="#c6f6d5"];
+    D [label="SQL Server\nInventarioDB", shape=cylinder, fillcolor="#e2e8f0"];
+  }
+  C -> S [label="Constructor Injection"]; S -> K [label="Constructor Injection"]; S -> R [label="Constructor Injection"]; R -> H [label="JPA"];
+  K -> P [label="HTTP / JSON", color="#c05621", fontcolor="#c05621", penwidth=2];
+  P -> I [label="@EJB"]; I -> E; E -> D [label="JTA local"];
+}

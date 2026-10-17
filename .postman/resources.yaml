@@ -1,0 +1,9 @@
+# Use this workspace to collaborate
+workspace:
+  id: 50622cde-72b0-435a-8e28-4f8820842f22
+
+localResources:
+  collections:
+    - ../sistema-pedidos-springboot/postman/ISIL.postman_collection.json
+  specs:
+    - ../inventario-service/openapi/inventario-service.yaml
