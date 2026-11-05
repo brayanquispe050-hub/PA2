@@ -15,14 +15,24 @@ public class PedidoReporteJdbcRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final RowMapper<Pedido> pedidoRowMapper;
 
-    public PedidoReporteJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate, RowMapper<Pedido> pedidoRowMapper) {
+    public PedidoReporteJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.pedidoRowMapper = pedidoRowMapper;
+        this.pedidoRowMapper = (rs, rowNum) -> {
+            Pedido p = new Pedido();
+            p.setId(rs.getLong("id"));
+            p.setCliente(rs.getString("cliente"));
+            p.setProductoCodigo(rs.getString("producto_codigo"));
+            p.setProductoNombre(rs.getString("producto_nombre"));
+            p.setCantidad(rs.getInt("cantidad"));
+            p.setPrecioUnitario(rs.getBigDecimal("precio_unitario"));
+            p.setTotal(rs.getBigDecimal("total"));
+            return p;
+        };
     }
 
     public List<Pedido> buscarPedidosPorClienteYTotalMinimo(String cliente, Double totalMinimo) {
-        String sql = "SELECT id, cliente, producto, cantidad, precio_unitario, total, fecha " +
-                "FROM pedidos " +
+        String sql = "SELECT id, cliente, producto_codigo, producto_nombre, cantidad, precio_unitario, total " +
+                "FROM pedido " +
                 "WHERE cliente LIKE :cliente AND total >= :totalMinimo " +
                 "ORDER BY id DESC";
 
@@ -39,7 +49,7 @@ public class PedidoReporteJdbcRepository {
                 "SUM(cantidad) AS total_unidades, " +
                 "SUM(total) AS importe_acumulado, " +
                 "AVG(total) AS ticket_promedio " +
-                "FROM pedidos " +
+                "FROM pedido " +
                 "GROUP BY cliente " +
                 "HAVING COUNT(id) >= :minPedidos " +
                 "ORDER BY total_pedidos DESC";

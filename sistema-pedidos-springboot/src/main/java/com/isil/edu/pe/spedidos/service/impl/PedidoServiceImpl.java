@@ -32,9 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Esta clase contiene la lógica de negocio del Sistema de Pedidos y
  * coordina dos dependencias principales:
  * <ul>
- *   <li>{@link PedidoRepository}, encargado de la persistencia local de los pedidos.</li>
- *   <li>{@link InventarioClient}, encargado de comunicarse con {@code inventario-service}.</li>
- * </ul>
+ *    <li>{@link PedidoRepository}, encargado de la persistencia local de los pedidos.</li>
+ *    <li>{@link InventarioClient}, encargado de comunicarse con {@code inventario-service}.</li>
+ *  </ul>
  *
  * @see PedidoService
  * @see PedidoRepository
@@ -86,6 +86,7 @@ public class PedidoServiceImpl implements PedidoService {
             throw new PedidoException(e.getMessage(), e);
         }
 
+        Pedido guardado = null;
         try {
             validarReserva(reserva);
 
@@ -94,10 +95,13 @@ public class PedidoServiceImpl implements PedidoService {
             Pedido pedido = new Pedido(cliente.trim(), reserva.getCodigo(), reserva.getNombre(),
                     reserva.getPrecio(), cantidad, total);
 
-            Pedido guardado = pedidoRepository.save(pedido);
+            guardado = pedidoRepository.save(pedido);
             controlFalloLocal.despuesDeGuardar();
             return guardado;
         } catch (RuntimeException e) {
+            if (guardado != null && guardado.getId() != null) {
+                pedidoRepository.delete(guardado);
+            }
             compensarReserva(productoCodigo.trim(), cantidad, e);
             throw e;
         }

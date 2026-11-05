@@ -38,6 +38,7 @@
                     <th>Cliente</th>
                     <th>Producto</th>
                     <th>Cantidad</th>
+                    <th>Precio Unitario</th>
                     <th>Total</th>
                 </tr>
             </thead>
@@ -46,8 +47,9 @@
                     <tr>
                         <td>${p.id}</td>
                         <td>${p.cliente}</td>
-                        <td>${p.producto}</td>
+                        <td>${p.productoNombre}</td>
                         <td>${p.cantidad}</td>
+                        <td>S/ ${p.precioUnitario}</td>
                         <td>S/ ${p.total}</td>
                     </tr>
                 </c:forEach>

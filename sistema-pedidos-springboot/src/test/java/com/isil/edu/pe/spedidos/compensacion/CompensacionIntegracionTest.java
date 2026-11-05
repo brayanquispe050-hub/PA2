@@ -18,73 +18,81 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.transaction.annotation.Transactional;
 
-
-@SpringBootTest(properties = "pedidos.test.simular-fallo-local=true")
+@SpringBootTest(properties = {
+        "pedidos.test.simular-fallo-local=true",
+        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
+@Transactional
 class CompensacionIntegracionTest {
 
+    static class InventarioFalso implements InventarioClient, DevolucionStockClient {
 
-  static class InventarioFalso implements InventarioClient, DevolucionStockClient {
+        int stock = 10;
 
-    int stock = 10;
+        @Override
+        public List<ProductoInventarioResponse> listarProductos() {
+            return List.of();
+        }
 
-    @Override
-    public List<ProductoInventarioResponse> listarProductos() {
-      return List.of();
+        @Override
+        public ReservaStockResponse reservarStock(String codigo, int cantidad) {
+            stock -= cantidad;
+            ReservaStockResponse r = new ReservaStockResponse();
+            r.setCodigo(codigo);
+            r.setNombre("Laptop");
+            r.setPrecio(new BigDecimal("2500.00"));
+            r.setCantidadReservada(cantidad);
+            r.setStockRestante(stock);
+            return r;
+        }
+
+        @Override
+        public DevolucionStockResponse devolverStock(String codigo, int cantidad) {
+            stock += cantidad;
+            DevolucionStockResponse r = new DevolucionStockResponse();
+            r.setCodigo(codigo);
+            r.setCantidadDevuelta(cantidad);
+            r.setStockRestante(stock);
+            return r;
+        }
     }
 
-    @Override
-    public ReservaStockResponse reservarStock(String codigo, int cantidad) {
-      stock -= cantidad;
-      ReservaStockResponse r = new ReservaStockResponse();
-      r.setCodigo(codigo);
-      r.setNombre("Laptop");
-      r.setPrecio(new BigDecimal("2500.00"));
-      r.setCantidadReservada(cantidad);
-      r.setStockRestante(stock);
-      return r;
+    @TestConfiguration
+    static class Config {
+
+        @Bean
+        @Primary
+        InventarioFalso inventarioFalso() {
+            return new InventarioFalso();
+        }
     }
 
-    @Override
-    public DevolucionStockResponse devolverStock(String codigo, int cantidad) {
-      stock += cantidad;
-      DevolucionStockResponse r = new DevolucionStockResponse();
-      r.setCodigo(codigo);
-      r.setCantidadDevuelta(cantidad);
-      r.setStockRestante(stock);
-      return r;
+    @Autowired
+    private PedidoService pedidoService;
+
+    @Autowired
+    private PedidoRepository pedidoRepository;
+
+    @Autowired
+    private InventarioFalso inventario;
+
+    @Test
+    void compensaLaReservaYNoDejaPedidoConfirmadoEnH2() {
+        assertEquals(10, inventario.stock);
+        assertEquals(0, pedidoRepository.count());
+
+        assertThrows(FalloLocalSimuladoException.class,
+                () -> pedidoService.registrarPedido("Ana Torres", "LAP-001", 2));
+
+        // Después: Inventario restituido (10 -> 8 -> 10) y H2 sin pedido confirmado.
+        assertEquals(10, inventario.stock);
+        assertEquals(0, pedidoRepository.count());
     }
-  }
-
-  @TestConfiguration
-  static class Config {
-
-    @Bean
-    @Primary
-    InventarioFalso inventarioFalso() {
-      return new InventarioFalso();
-    }
-  }
-
-  @Autowired
-  private PedidoService pedidoService;
-
-  @Autowired
-  private PedidoRepository pedidoRepository;
-
-  @Autowired
-  private InventarioFalso inventario;
-
-  @Test
-  void compensaLaReservaYNoDejaPedidoConfirmadoEnH2() {
-    assertEquals(10, inventario.stock);
-    assertEquals(0, pedidoRepository.count());
-
-    assertThrows(FalloLocalSimuladoException.class,
-        () -> pedidoService.registrarPedido("Ana Torres", "LAP-001", 2));
-
-    // Después: Inventario restituido (10 -> 8 -> 10) y H2 sin pedido confirmado.
-    assertEquals(10, inventario.stock);
-    assertEquals(0, pedidoRepository.count());
-  }
 }
